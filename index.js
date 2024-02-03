@@ -1,3 +1,4 @@
+
 const express = require('express');
 const multer = require('multer'); // For handling file uploads
 const axios = require('axios');
@@ -11,26 +12,28 @@ const upload = multer({ storage: storage });
 
 app.post('/upload', upload.single('image'), async (req, res) => {
     try {
-        // Access the image buffer as a Blob
-        const imageBlob = req.file.buffer;
+        // Access the image buffer
+        const imageBuffer = req.file.buffer;
         res.header('Access-Control-Allow-Origin', '*');
 
+        // Convert the imageBuffer to Base64
+        const imageBase64 = imageBuffer.toString('base64');
 
-        // Convert the imageBlob to Base64
-        const imageBase64 = Buffer.from(imageBlob).toString('base64');
+        // Construct the OCR API URL
+        const apiUrl = 'https://api.ocr.space/parse/image';
 
-        // Construct the URL with the Base64-encoded image
-        const apiUrl = `https://api.ocr.space/parse/imageurl?apikey=K89496159888957&url=${encodeURIComponent(imageBase64)}`;
+        // Make the POST request to the OCR API
+        const ocrApiResponse = await axios.post(apiUrl, {
+            apikey: 'K89496159888957',
+            language: 'eng', // Specify the language code as needed
+            base64image: `data:image/jpeg;base64,${imageBase64}`, // Include image data
+        });
 
-        // Make the GET request
-        axios.get(apiUrl)
-            .then(response => {
-                const ocrResult = response.data;
-                console.log('OCR Result:', ocrResult);
-            })
-            .catch(error => {
-                console.error('Error making OCR API request:', error);
-            });
+        // Handle OCR API response
+        const ocrResult = ocrApiResponse.data;
+        console.log('OCR Result:', ocrResult);
+
+        res.json({ ocrResult });
     } catch (error) {
         console.error('Error processing image:', error);
         res.status(500).json({ error: 'Internal Server Error' });
